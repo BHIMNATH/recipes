@@ -7,14 +7,15 @@ class Recipe {
   final int cookTimeMinutes;
   final int servings;
   final String difficulty;
-  final String? cuisine;
+  final String cuisine;
   final int caloriesPerServing;
+  final List<String> tags;
   final String imageUrl;
   final double? rating;
   final int reviewCount;
-  final List<String> mealtype;
+  final List<String> mealType;
 
-  const Recipe({
+  Recipe({
     required this.id,
     required this.name,
     required this.ingredients,
@@ -25,28 +26,32 @@ class Recipe {
     required this.difficulty,
     required this.cuisine,
     required this.caloriesPerServing,
+    required this.tags,
     required this.imageUrl,
-    required this.rating,
+    this.rating,
     required this.reviewCount,
-    required this.mealtype,
+    required this.mealType,
   });
+
   int get totalTime => prepTimeMinutes + cookTimeMinutes;
+
   factory Recipe.fromJson(Map<String, dynamic> json) {
     return Recipe(
-      id: json['id'],
-      name: json['name'],
-      ingredients: List<String>.from(json['ingredients']),
-      instructions: List<String>.from(json['instructions']),
-      prepTimeMinutes: json['prepTimeMinutes'],
-      cookTimeMinutes: json['cookTimeMinutes'],
-      servings: json['servings'],
-      difficulty: json['difficulty'],
+      id: json['id'] ?? 0,
+      name: json['name'] ?? '',
+      ingredients: List<String>.from(json['ingredients'] ?? []),
+      instructions: List<String>.from(json['instructions'] ?? []),
+      prepTimeMinutes: json['prepTimeMinutes'] ?? 0,
+      cookTimeMinutes: json['cookTimeMinutes'] ?? 0,
+      servings: json['servings'] ?? 1,
+      difficulty: json['difficulty'] ?? 'Easy',
       cuisine: json['cuisine'] ?? '',
-      caloriesPerServing: json['caloriesPerServing'],
-      imageUrl: json['image'],
-      rating: json['rating']?.toDouble(),
-      reviewCount: json['reviewCount'],
-      mealtype: List<String>.from(json['mealtype']),
+      caloriesPerServing: json['caloriesPerServing'] ?? 0,
+      tags: List<String>.from(json['tags'] ?? []),
+      imageUrl: json['image'] ?? '',
+      rating: (json['rating'] as num?)?.toDouble(),
+      reviewCount: json['reviewCount'] ?? 0,
+      mealType: List<String>.from(json['mealType'] ?? []),
     );
   }
 }

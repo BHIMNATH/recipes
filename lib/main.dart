@@ -12,7 +12,12 @@ class RecipeApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const MaterialApp(title: 'Recipes', home: const RecipeListScreen());
+    return MaterialApp(
+      title: 'Recipes',
+      debugShowCheckedModeBanner: false,
+      theme: ThemeData(colorSchemeSeed: Colors.orange, useMaterial3: true),
+      home: const RecipeListScreen(),
+    );
   }
 }
 
@@ -23,11 +28,12 @@ class RecipeListScreen extends StatefulWidget {
   State<RecipeListScreen> createState() => _RecipeListScreenState();
 }
 
-class RecipeListScreenState extends State<RecipeListScreen> {
+class _RecipeListScreenState extends State<RecipeListScreen> {
   final RecipeService recipeService = RecipeService();
   List<Recipe> recipes = [];
   bool isLoading = false;
   String? errorMessage;
+
   @override
   void initState() {
     super.initState();
@@ -37,6 +43,7 @@ class RecipeListScreenState extends State<RecipeListScreen> {
   Future<void> fetchRecipes() async {
     setState(() {
       isLoading = true;
+      errorMessage = null;
     });
     try {
       final result = await recipeService.fetchRecipes();
@@ -59,94 +66,132 @@ class RecipeListScreenState extends State<RecipeListScreen> {
     await fetchRecipes();
   }
 
+  Widget buildBody() {
+    if (isLoading) {
+      return const Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            CircularProgressIndicator(),
+            SizedBox(height: 16),
+            Text('Loading...'),
+          ],
+        ),
+      );
+    }
+
+    if (errorMessage != null) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Text(
+                'Failed to Load Recipes',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                errorMessage!,
+                textAlign: TextAlign.center,
+                style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
+              ),
+              const SizedBox(height: 16),
+              ElevatedButton.icon(
+                onPressed: refreshRecipes,
+                icon: const Icon(Icons.refresh),
+                label: const Text('Retry'),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    if (recipes.isEmpty) {
+      return const Center(child: Text('No Recipes'));
+    }
+
+    return RefreshIndicator(
+      onRefresh: refreshRecipes,
+      child: ListView.builder(
+        padding: const EdgeInsets.all(16),
+        itemCount: recipes.length,
+        itemBuilder: (context, index) {
+          final recipe = recipes[index];
+          return RecipeCard(
+            recipe: recipe,
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => RecipeDetailScreen(recipe: recipe),
+                ),
+              );
+            },
+          );
+        },
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('Recipes')),
       body: buildBody(),
     );
-    Widget buildBody() {
-      if(isLoading){
-        return const Center(child: Column(children: [CircularProgressIndicator()],SizedBox(height:16),Text('Loading...'),
-        ])
-        );
-      }
-      if(errorMessage != null){
-        return Center(child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child:Column(children: [Text('Failed to Load Recipes'),
-          ElevatedButton(onPressed: refreshRecipes, child: const Text('Retry'), icon: const Icon(Icons.refresh))],
-          )
-        ));
-      }
-      if(recipes.isEmpty){
-        return const Center(child: Text('No Recipes')
-        ),
-      }
-      return RefreshIndicator(
-        onRefresh: refreshRecipes,
-        child: ListView.builder(
-          padding: const EdgeInsets.all(16),
-          itemCount:recipes.length,
-          itemBuilder: (context, index){
-            final recipe = recipes[index];
-            return RecipeCard(
-              recipe : recipe,
-              onTap:(){
-                Navigator.push(context, MaterialPageRoute(builder:(_) => RecipeDetailScreen(recipe: recipe,),),);
-              },
-            );
-          }
-        )
-      )
-    }
   }
 }
-class RecipeCard extends StatelessWidget{
+
+class RecipeCard extends StatelessWidget {
   final Recipe recipe;
   final VoidCallback onTap;
 
-  const RecipeCard({
-    super.key,
-    required this.recipe,
-    required this.onTap,
-    });
+  const RecipeCard({super.key, required this.recipe, required this.onTap});
 
-    @overrid
-    Widget build(BuildContext context){
-      return Container(
-        margin: const EdgeInsets.only(bottom: 12),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(20),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.6),
-              blurRadius: 4,
-              offset: const Offset(0, 2),
-            ),
-          ],
-        ),
-          child: InkWell(
-            onTap: onTap,
-            borderRadius: BorderRadius.circular(15),
-            child: Padding(
-              padding: const EdgeInsets.all(10),
-              child: Row(
-                children:[
-                  ClipRect(
-                    borderRadius: BorderRadius.circular(15),
-                    child: Image.network(recipe.imageUrl, width: 100, height: 96, fit: BoxFit.cover),
-                    loadingBuilder: (context, child, loadingProgress){
-                      if(loadingProgress == null) return child;
-                      return  Container(
-                        width: 100,
-                        height: 96,
-                        color: Colors.grey.shade200,
-                        child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
-                      );
-                    },
-                  ),
-                  errorBuilder: (context, error, stackTrace){
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.08),
+            blurRadius: 6,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(20),
+        child: Padding(
+          padding: const EdgeInsets.all(10),
+          child: Row(
+            children: [
+              ClipRRect(
+                borderRadius: BorderRadius.circular(15),
+                child: Image.network(
+                  recipe.imageUrl,
+                  width: 100,
+                  height: 96,
+                  fit: BoxFit.cover,
+                  loadingBuilder: (context, child, loadingProgress) {
+                    if (loadingProgress == null) return child;
+                    return Container(
+                      width: 100,
+                      height: 96,
+                      color: Colors.grey.shade200,
+                      child: const Center(
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      ),
+                    );
+                  },
+                  errorBuilder: (context, error, stackTrace) {
                     return Container(
                       width: 100,
                       height: 96,
@@ -154,8 +199,10 @@ class RecipeCard extends StatelessWidget{
                       child: const Center(child: Icon(Icons.restaurant)),
                     );
                   },
-                  const SizedBox(width: 10),
-                                Expanded(
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -168,9 +215,7 @@ class RecipeCard extends StatelessWidget{
                         fontWeight: FontWeight.bold,
                       ),
                     ),
-
                     const SizedBox(height: 5),
-
                     Text(
                       recipe.cuisine,
                       style: TextStyle(
@@ -178,27 +223,19 @@ class RecipeCard extends StatelessWidget{
                         fontSize: 14,
                       ),
                     ),
-
                     const SizedBox(height: 12),
-
                     Row(
                       children: [
-                        const Icon(
-                          Icons.star,
-                          color: Colors.amber,
-                          size: 21,
-                        ),
+                        const Icon(Icons.star, color: Colors.amber, size: 21),
                         const SizedBox(width: 4),
                         Text(
-                          recipe.rating.toStringAsFixed(1),
+                          (recipe.rating ?? 0.0).toStringAsFixed(1),
                           style: const TextStyle(
                             color: Colors.orange,
                             fontWeight: FontWeight.bold,
                           ),
                         ),
-
                         const Spacer(),
-
                         const Icon(
                           Icons.access_time,
                           size: 17,
@@ -211,28 +248,26 @@ class RecipeCard extends StatelessWidget{
                         ),
                       ],
                     ),
-                ],
+                  ],
+                ),
               ),
-            ),
+            ],
           ),
-  
-      );
-    }
+        ),
+      ),
+    );
+  }
 }
+
 class RecipeDetailScreen extends StatelessWidget {
   final Recipe recipe;
 
-  const RecipeDetailScreen({
-    super.key,
-    required this.recipe,
-  });
+  const RecipeDetailScreen({super.key, required this.recipe});
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text(recipe.name),
-      ),
+      appBar: AppBar(title: Text(recipe.name)),
       body: SingleChildScrollView(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -252,7 +287,6 @@ class RecipeDetailScreen extends StatelessWidget {
                 );
               },
             ),
-
             Padding(
               padding: const EdgeInsets.all(20),
               child: Column(
@@ -265,99 +299,54 @@ class RecipeDetailScreen extends StatelessWidget {
                       fontWeight: FontWeight.bold,
                     ),
                   ),
-
                   const SizedBox(height: 10),
-
                   Text(
                     '${recipe.cuisine} • ${recipe.difficulty}',
-                    style: TextStyle(
-                      color: Colors.grey.shade600,
-                    ),
+                    style: TextStyle(color: Colors.grey.shade600),
                   ),
-
                   const SizedBox(height: 20),
-
                   Row(
-                    mainAxisAlignment:
-                        MainAxisAlignment.spaceBetween,
+                    mainAxisAlignment: MainAxisAlignment.spaceAround,
                     children: [
                       _InfoItem(
                         icon: Icons.star,
-                        label: recipe.rating.toStringAsFixed(1),
+                        color: Colors.amber,
+                        label: (recipe.rating ?? 0.0).toStringAsFixed(1),
                       ),
                       _InfoItem(
                         icon: Icons.access_time,
+                        color: Colors.blue,
                         label: '${recipe.totalTime} min',
                       ),
                       _InfoItem(
-                        icon: Icons.people,
-                        label: '${recipe.servings} servings',
+                        icon: Icons.local_fire_department,
+                        color: Colors.red,
+                        label: '${recipe.caloriesPerServing} kcal',
                       ),
                     ],
                   ),
-
-                  const SizedBox(height: 28),
-
+                  const SizedBox(height: 24),
                   const Text(
                     'Ingredients',
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                    ),
+                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                   ),
-
-                  const SizedBox(height: 12),
-
+                  const SizedBox(height: 8),
                   ...recipe.ingredients.map(
                     (ingredient) => Padding(
-                      padding: const EdgeInsets.only(bottom: 10),
-                      child: Row(
-                        children: [
-                          const Icon(
-                            Icons.check_circle,
-                            color: Colors.green,
-                            size: 19,
-                          ),
-                          const SizedBox(width: 10),
-                          Expanded(child: Text(ingredient)),
-                        ],
-                      ),
+                      padding: const EdgeInsets.symmetric(vertical: 4),
+                      child: Text('• $ingredient'),
                     ),
                   ),
-
-                  const SizedBox(height: 25),
-
+                  const SizedBox(height: 24),
                   const Text(
                     'Instructions',
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                    ),
+                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                   ),
-
-                  const SizedBox(height: 12),
-
+                  const SizedBox(height: 8),
                   ...recipe.instructions.asMap().entries.map(
                     (entry) => Padding(
-                      padding: const EdgeInsets.only(bottom: 16),
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          CircleAvatar(
-                            radius: 15,
-                            child: Text('${entry.key + 1}'),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Text(
-                              entry.value,
-                              style: const TextStyle(
-                                height: 1.5,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
+                      padding: const EdgeInsets.symmetric(vertical: 6),
+                      child: Text('${entry.key + 1}. ${entry.value}'),
                     ),
                   ),
                 ],
@@ -366,6 +355,27 @@ class RecipeDetailScreen extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+class _InfoItem extends StatelessWidget {
+  final IconData icon;
+  final Color color;
+  final String label;
+  const _InfoItem({
+    required this.icon,
+    required this.color,
+    required this.label,
+  });
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        Icon(icon, color: color, size: 28),
+        const SizedBox(height: 4),
+        Text(label, style: const TextStyle(fontWeight: FontWeight.bold)),
+      ],
     );
   }
 }
