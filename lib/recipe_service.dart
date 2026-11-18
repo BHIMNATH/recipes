@@ -11,7 +11,8 @@ class RecipeService {
       final response = await http.get(Uri.parse(baseUrl));
       if (response.statusCode == 200) {
         final Map<String, dynamic> data = jsonDecode(response.body);
-        final List<dynamic> recipesJson = data['recipes'] ?? [];
+        final List<dynamic> recipesJson = data['recipes'];
+
         return recipesJson.map((item) {
           return Recipe.fromJson(item as Map<String, dynamic>);
         }).toList();
